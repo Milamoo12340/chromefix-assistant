@@ -1,320 +1,448 @@
 import { useState } from "react";
-import { CheckCircle, Circle, ChevronDown, ChevronUp, AlertTriangle, Download, Terminal, Usb, RefreshCw, ExternalLink, Copy, Check } from "lucide-react";
-
-const RECOVERY_URL = "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16552.53.0_galith_recovery_stable-channel_mp-v3.bin.zip";
-const RECOVERY_CROS_TECH = "https://cros.tech/device/galith/";
-const RECOVERY_UTIL_URL = "https://chrome.google.com/webstore/detail/chromebook-recovery-utili/pocpnlppkickgojjlmhdmidojbmbodfm";
+import { Download, Copy, Check, ChevronDown, ChevronUp, AlertTriangle, CheckCircle, ExternalLink, FileText, Terminal, Usb } from "lucide-react";
 
 function CopyButton({ text }) {
   const [copied, setCopied] = useState(false);
-  const copy = () => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
   return (
-    <button onClick={copy} className="ml-2 p-1 rounded hover:bg-slate-600 transition-colors text-slate-300 hover:text-white">
-      {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+    <button onClick={() => { navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+      className="flex items-center gap-1 px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-xs text-white transition-colors flex-shrink-0">
+      {copied ? <><Check className="w-3 h-3 text-green-400" /> Copied</> : <><Copy className="w-3 h-3" /> Copy</>}
     </button>
   );
 }
 
-function CodeBlock({ code }) {
+function Code({ children }) {
   return (
-    <div className="bg-slate-900 rounded-lg p-3 mt-2 flex items-start justify-between gap-2 font-mono text-sm text-green-300 break-all">
-      <span>{code}</span>
-      <CopyButton text={code} />
+    <div className="bg-slate-950 rounded-lg p-3 mt-2 flex items-start justify-between gap-3 font-mono text-sm text-green-300 break-all">
+      <pre className="whitespace-pre-wrap flex-1 text-xs leading-relaxed">{children}</pre>
+      <CopyButton text={children} />
     </div>
   );
 }
 
-function Step({ number, title, icon: Icon, color, children, defaultOpen }) {
-  const [open, setOpen] = useState(defaultOpen || false);
+function Section({ title, icon: Icon, color = "border-slate-200", children, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className={`rounded-xl border-2 ${color} overflow-hidden mb-4`}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-3 p-4 text-left bg-white hover:bg-slate-50 transition-colors"
-      >
-        <div className="w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
-          {number}
-        </div>
-        <Icon className="w-5 h-5 flex-shrink-0 text-slate-600" />
-        <span className="font-semibold text-slate-800 flex-1">{title}</span>
+    <div className={`rounded-xl border-2 ${color} overflow-hidden mb-4 bg-white`}>
+      <button onClick={() => setOpen(!open)} className="w-full flex items-center gap-3 p-4 text-left hover:bg-slate-50 transition-colors">
+        <Icon className="w-5 h-5 text-slate-500 flex-shrink-0" />
+        <span className="font-semibold text-slate-800 flex-1 text-sm">{title}</span>
         {open ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
       </button>
-      {open && <div className="p-4 bg-white border-t border-slate-100">{children}</div>}
+      {open && <div className="px-4 pb-4 pt-0 space-y-3">{children}</div>}
     </div>
   );
 }
 
 function Warn({ children }) {
+  return <div className="flex gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-800 text-xs"><AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" /><span>{children}</span></div>;
+}
+function Info({ children }) {
+  return <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-blue-800 text-xs">{children}</div>;
+}
+function Good({ children }) {
+  return <div className="flex gap-2 bg-green-50 border border-green-200 rounded-lg p-3 text-green-800 text-xs"><CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" /><span>{children}</span></div>;
+}
+
+function DownloadBtn({ label, filename, content, color = "bg-blue-600 hover:bg-blue-700" }) {
+  const download = () => {
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  };
   return (
-    <div className="flex gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-800 text-sm mb-3">
-      <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-      <span>{children}</span>
-    </div>
+    <button onClick={download} className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-semibold ${color} transition-colors`}>
+      <Download className="w-4 h-4" /> {label}
+    </button>
   );
 }
 
-function Note({ children }) {
-  return (
-    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-blue-800 text-sm mb-3">
-      {children}
-    </div>
-  );
-}
+// ─── SCRIPT CONTENTS ───────────────────────────────────────────────
 
-function Li({ children }) {
-  return (
-    <li className="flex gap-2 items-start text-slate-700 text-sm mb-2">
-      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-      <span>{children}</span>
-    </li>
-  );
-}
+const SCRIPT_STEP1_LINUX = `#!/bin/bash
+# ============================================================
+# STEP 1 — Download GALITH ChromeOS Recovery Image
+# Run this on a working Linux/Mac computer
+# ============================================================
+# Your device: ASUS CX1500CKA | Board: GALITH | JasperLake
 
-function NumLi({ n, children }) {
-  return (
-    <li className="flex gap-3 items-start text-slate-700 text-sm mb-3">
-      <span className="w-6 h-6 rounded-full bg-slate-800 text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">{n}</span>
-      <span>{children}</span>
-    </li>
-  );
-}
+echo "=== GALITH ChromeOS Recovery Downloader ==="
+echo ""
+echo "This will download the latest stable ChromeOS recovery"
+echo "image for your ASUS CX1500CKA (GALITH board)."
+echo ""
+
+# Create a working folder
+mkdir -p ~/galith_recovery
+cd ~/galith_recovery
+
+echo "[1/3] Downloading recovery image..."
+# Latest stable recovery image for GALITH
+# Source: https://cros.tech/device/galith/
+curl -L --progress-bar -o galith_recovery.zip \\
+  "https://dl.google.com/dl/edgedl/chromeos/recovery/chromeos_16552.53.0_galith_recovery_stable-channel_mp-v3.bin.zip"
+
+echo ""
+echo "[2/3] Extracting .bin file..."
+unzip -o galith_recovery.zip
+BIN_FILE=$(ls *.bin 2>/dev/null | head -1)
+
+if [ -z "$BIN_FILE" ]; then
+  echo "ERROR: Could not find .bin file after extraction."
+  echo "Try downloading manually from: https://cros.tech/device/galith/"
+  exit 1
+fi
+
+echo "[3/3] Done! Recovery image: ~/galith_recovery/$BIN_FILE"
+echo ""
+echo "=== NEXT STEP ==="
+echo "Run STEP 2 script to flash this .bin to your USB drive."
+echo "Or use Rufus on Windows (see README.txt)"
+`;
+
+const SCRIPT_STEP2_LINUX = `#!/bin/bash
+# ============================================================
+# STEP 2 — Flash Recovery Image to USB Drive
+# Run this on a working Linux/Mac computer
+# ============================================================
+# WARNING: THIS WILL ERASE THE USB DRIVE COMPLETELY
+
+echo "=== GALITH Recovery USB Flasher ==="
+echo ""
+echo "Available drives:"
+lsblk -d -o NAME,SIZE,MODEL | grep -v "loop"
+echo ""
+echo "WARNING: You are about to ERASE a USB drive."
+echo "The ChromeOS .bin file MUST be in ~/galith_recovery/"
+echo ""
+
+BIN_FILE=$(ls ~/galith_recovery/*.bin 2>/dev/null | head -1)
+
+if [ -z "$BIN_FILE" ]; then
+  echo "ERROR: No .bin file found in ~/galith_recovery/"
+  echo "Run STEP 1 script first."
+  exit 1
+fi
+
+echo "Recovery image found: $BIN_FILE"
+echo ""
+read -p "Enter your USB drive device (e.g. sdb, NOT sdb1): " DRIVE
+TARGET="/dev/$DRIVE"
+
+if [ ! -b "$TARGET" ]; then
+  echo "ERROR: $TARGET is not a valid block device. Check lsblk output above."
+  exit 1
+fi
+
+echo ""
+echo "About to flash: $BIN_FILE"
+echo "Destination:    $TARGET"
+echo ""
+read -p "Are you SURE? Type YES to continue: " CONFIRM
+
+if [ "$CONFIRM" != "YES" ]; then
+  echo "Cancelled."
+  exit 0
+fi
+
+echo ""
+echo "Flashing... this takes 5-15 minutes. Do not unplug anything."
+sudo dd if="$BIN_FILE" of="$TARGET" bs=4M status=progress conv=fsync
+sync
+
+echo ""
+echo "=== DONE! ==="
+echo "Eject the USB drive and plug it into your broken ASUS CX1500CKA."
+echo "See README.txt for recovery steps."
+`;
+
+const SCRIPT_STEP3_CHROMEOS = `#!/bin/bash
+# ============================================================
+# STEP 3 — MrChromebox Firmware Script
+# Run this ON YOUR ASUS CX1500CKA after ChromeOS is recovered
+# ============================================================
+# HOW TO GET A TERMINAL ON YOUR CHROMEBOOK:
+#   1. Boot to the ChromeOS login screen (do NOT log in)
+#   2. Press Ctrl+Alt+F2  (F2 = right-arrow key on Chromebook)
+#   3. Login: chronos  (no password)
+#   4. Paste this command:
+
+# cd; curl -LOf https://mrchromebox.tech/firmware-util.sh && sudo bash firmware-util.sh
+
+# ============================================================
+# The script above is the REAL firmware script from MrChromebox.
+# It auto-detects your GALITH device.
+#
+# MENU OPTIONS EXPLAINED FOR GALITH (EOL device):
+#
+#   Option 1 - Install/Update RW_LEGACY Firmware
+#     -> Likely DISABLED (greyed out) for GALITH because it is EOL
+#     -> Would allow dual boot ChromeOS + Linux without opening laptop
+#
+#   Option 2 - Install/Update UEFI Full ROM Firmware
+#     -> REPLACES ChromeOS entirely with standard PC firmware
+#     -> Lets you install Linux or Windows
+#     -> Requires: disabling hardware write-protect (open laptop, remove screw)
+#     -> See: https://docs.mrchromebox.tech/docs/supported-devices.html
+#        GALITH write-protect method: CR50 / jumper
+#
+#   Option 5 - Backup Current Firmware
+#     -> ALWAYS do this first if option 2 is available
+#     -> Save backup to USB drive
+#
+# ============================================================
+# ACTUAL COMMAND TO RUN (copy this):
+echo "Copy and run this command in your Chromebook terminal:"
+echo ""
+echo "cd; curl -LOf https://mrchromebox.tech/firmware-util.sh && sudo bash firmware-util.sh"
+`;
+
+const README = `============================================================
+ASUS CX1500CKA (GALITH) — COMPLETE RECOVERY PACKAGE
+============================================================
+Device:   ASUS Chromebook CX1500CKA
+Board:    GALITH-HKFU
+Platform: Intel JasperLake
+Status:   EOL (recoverable — see notes below)
+Date:     March 2026
+============================================================
+
+FILES IN THIS PACKAGE:
+  step1_download_recovery.sh  — Downloads ChromeOS recovery .bin for GALITH
+  step2_flash_usb.sh          — Flashes the .bin to your USB drive (Linux/Mac)
+  step3_firmware_script.sh    — Explains how to run MrChromebox firmware script
+  README.txt                  — This file
+
+============================================================
+WHAT YOU PROBABLY NEED (READ THIS FIRST)
+============================================================
+
+SITUATION A — ChromeOS is broken / won't boot:
+  → You need a ChromeOS Recovery USB.
+  → You do NOT need the firmware script.
+  → Follow METHOD 1 (easy) or METHOD 2 (manual) below.
+
+SITUATION B — ChromeOS works, you want to run Linux too:
+  → GALITH is EOL. MrChromebox blocks RW_LEGACY on EOL devices.
+  → Your only option is UEFI Full ROM (replaces ChromeOS entirely).
+  → You must open the laptop to remove the write-protect jumper.
+
+============================================================
+METHOD 1 — EASIEST: Chrome Recovery Utility (Windows/Mac)
+============================================================
+1. On a working computer, open Chrome browser
+2. Install: Chromebook Recovery Utility
+   https://chrome.google.com/webstore/detail/chromebook-recovery-utili/pocpnlppkickgojjlmhdmidojbmbodfm
+3. Open the extension
+4. Search for: ASUS Chromebook CX1500CKA
+   (or select from list: ASUS → Chromebook CX1500CKA)
+5. Insert an 8GB+ USB drive
+6. Follow prompts — it downloads and flashes automatically
+7. Done. Go to ENTERING RECOVERY MODE below.
+
+============================================================
+METHOD 2 — MANUAL (Windows with Rufus)
+============================================================
+1. Download the recovery image:
+   Go to: https://cros.tech/device/galith/
+   Click "Recovery Images" → download the latest stable .zip
+   Extract the .zip — you get a .bin file
+
+2. Download Rufus: https://rufus.ie/en/
+
+3. Open Rufus, plug in 8GB+ USB drive
+   Click SELECT → choose your .bin file
+   !! CRITICAL: When asked, choose "DD Image" mode !!
+   !! NOT "ISO mode" — recovery WILL FAIL if you pick ISO !!
+   Click Start → wait 10-15 min
+
+4. Done. Go to ENTERING RECOVERY MODE below.
+
+============================================================
+METHOD 3 — MANUAL (Linux/Mac with terminal scripts)
+============================================================
+1. Run: bash step1_download_recovery.sh
+   (downloads recovery image to ~/galith_recovery/)
+
+2. Run: bash step2_flash_usb.sh
+   (flashes image to your USB — you pick the drive)
+
+3. Done. Go to ENTERING RECOVERY MODE below.
+
+============================================================
+ENTERING RECOVERY MODE ON YOUR ASUS CX1500CKA
+============================================================
+1. Power off the laptop completely
+2. Hold: ESC + Refresh(↻) + Power simultaneously
+   - ESC = bottom left
+   - Refresh = circular arrow ↻ key, top row, ~4th from left
+   - Press and hold ESC+Refresh, THEN tap Power
+3. Release all keys when screen lights up
+4. You should see: "Chrome OS is missing or damaged"
+5. Insert your recovery USB
+6. Recovery starts automatically — progress bar appears
+7. Wait 5-20 minutes — DO NOT unplug anything
+8. Device reboots when done — remove USB
+9. Set up ChromeOS as new
+
+============================================================
+AFTER RECOVERY — RUNNING THE FIRMWARE SCRIPT (OPTIONAL)
+============================================================
+Only needed if you want to modify firmware (e.g. install Linux).
+
+1. At ChromeOS login screen, press: Ctrl + Alt + F2
+   (F2 is the right-arrow → key on Chromebook keyboards)
+2. Login as: chronos  (no password)
+3. Run this command:
+   cd; curl -LOf https://mrchromebox.tech/firmware-util.sh && sudo bash firmware-util.sh
+
+NOTE: GALITH is EOL. The script will likely only show UEFI Full ROM.
+RW_LEGACY (dual boot keeping ChromeOS) is blocked on EOL devices.
+
+============================================================
+IMPORTANT NOTES FOR GALITH (EOL DEVICE)
+============================================================
+- EOL = End of Life. Google stopped providing ChromeOS updates.
+- This does NOT mean the device is broken or unrecoverable.
+- Recovery USB still works perfectly.
+- MrChromebox firmware script still works for UEFI Full ROM.
+- RW_LEGACY firmware is blocked on EOL devices by MrChromebox.
+- Write-protect method for GALITH: CR50 / jumper (inside laptop)
+
+============================================================
+USEFUL LINKS
+============================================================
+Recovery images:      https://cros.tech/device/galith/
+MrChromebox docs:     https://docs.mrchromebox.tech
+Firmware script docs: https://docs.mrchromebox.tech/docs/fwscript.html
+Chrultrabook forum:   https://forum.chrultrabook.com
+Rufus:                https://rufus.ie/en/
+Chrome Recovery Util: https://chrome.google.com/webstore/detail/chromebook-recovery-utili/pocpnlppkickgojjlmhdmidojbmbodfm
+
+============================================================
+`;
 
 export default function Home() {
-  const [scenario, setScenario] = useState(null);
+  const downloadAll = () => {
+    const files = [
+      { name: "README.txt", content: README },
+      { name: "step1_download_recovery.sh", content: SCRIPT_STEP1_LINUX },
+      { name: "step2_flash_usb.sh", content: SCRIPT_STEP2_LINUX },
+      { name: "step3_firmware_script.sh", content: SCRIPT_STEP3_CHROMEOS },
+    ];
+    files.forEach((f, i) => {
+      setTimeout(() => {
+        const blob = new Blob([f.content], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = f.name; a.click();
+        URL.revokeObjectURL(url);
+      }, i * 300);
+    });
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-slate-100">
       {/* Header */}
-      <div className="bg-slate-900 text-white px-4 py-6">
+      <div className="bg-slate-900 text-white px-4 py-5">
         <div className="max-w-2xl mx-auto">
-          <div className="flex items-center gap-3 mb-1">
-            <RefreshCw className="w-6 h-6 text-blue-400" />
-            <h1 className="text-xl font-bold">ChromeOS Recovery Guide</h1>
-          </div>
-          <p className="text-slate-400 text-sm">ASUS CX1500CKA · Board: <span className="text-green-400 font-mono font-bold">GALITH-HKFU</span> · Intel JasperLake</p>
+          <h1 className="text-lg font-bold">ASUS CX1500CKA Recovery Package</h1>
+          <p className="text-slate-400 text-xs mt-0.5">Board: <span className="text-green-400 font-mono">GALITH-HKFU</span> · Intel JasperLake · All scripts pre-configured for your device</p>
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto px-4 py-5 space-y-4">
 
-        {/* Device confirmed */}
-        <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6 flex gap-3">
-          <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="font-semibold text-green-800 text-sm">Your device is confirmed supported</p>
-            <p className="text-green-700 text-xs mt-1">GALITH supports both RW_LEGACY (keep ChromeOS) and UEFI Full ROM firmware. Recovery images are available.</p>
+        {/* Download all */}
+        <div className="bg-white rounded-xl border-2 border-blue-300 p-4">
+          <p className="font-bold text-slate-800 mb-1 flex items-center gap-2"><FileText className="w-5 h-5 text-blue-600" /> Download Everything</p>
+          <p className="text-slate-500 text-xs mb-3">All 4 files — README + 3 scripts — pre-configured for your GALITH device. Download them all, put on a USB stick.</p>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={downloadAll} className="flex items-center gap-2 px-4 py-2 rounded-lg text-white text-sm font-semibold bg-blue-600 hover:bg-blue-700 transition-colors">
+              <Download className="w-4 h-4" /> Download All 4 Files
+            </button>
+          </div>
+          <p className="text-slate-400 text-xs mt-2">Or download individually below.</p>
+        </div>
+
+        {/* README */}
+        <Section title="📄 README.txt — Start here. Full instructions for every scenario." icon={FileText} color="border-green-300" defaultOpen={true}>
+          <Good>Read this first. It covers: Chrome Recovery Utility (easiest), manual Rufus method, Linux dd method, entering recovery mode, and the firmware script — all for your specific GALITH device.</Good>
+          <pre className="bg-slate-950 text-green-300 text-xs rounded-lg p-3 overflow-auto max-h-64 whitespace-pre-wrap leading-relaxed">{README}</pre>
+          <DownloadBtn label="Download README.txt" filename="README.txt" content={README} color="bg-green-600 hover:bg-green-700" />
+        </Section>
+
+        {/* Step 1 */}
+        <Section title="📥 Script 1 — Download the GALITH recovery .bin (Linux/Mac)" icon={Download} color="border-blue-200">
+          <Info>Run this on a working Linux or Mac computer. It downloads and extracts the correct ChromeOS recovery image for your GALITH device from Google's servers.</Info>
+          <Warn>Windows users: use the Chrome Recovery Utility instead (see README). You don't need this script.</Warn>
+          <Code>{SCRIPT_STEP1_LINUX}</Code>
+          <div className="pt-1">
+            <DownloadBtn label="Download step1_download_recovery.sh" filename="step1_download_recovery.sh" content={SCRIPT_STEP1_LINUX} />
+          </div>
+          <p className="text-slate-500 text-xs">Run with: <code className="bg-slate-100 px-1 rounded font-mono">bash step1_download_recovery.sh</code></p>
+        </Section>
+
+        {/* Step 2 */}
+        <Section title="💾 Script 2 — Flash the .bin to USB drive (Linux/Mac)" icon={Usb} color="border-purple-200">
+          <Info>Run this after Script 1. It shows your drives, asks which USB to flash to, and runs the dd command correctly. You tell it the drive letter (e.g. sdb) — it does the rest.</Info>
+          <Warn>This ERASES the USB drive completely. Double-check the drive letter before typing YES.</Warn>
+          <Code>{SCRIPT_STEP2_LINUX}</Code>
+          <div className="pt-1">
+            <DownloadBtn label="Download step2_flash_usb.sh" filename="step2_flash_usb.sh" content={SCRIPT_STEP2_LINUX} color="bg-purple-600 hover:bg-purple-700" />
+          </div>
+          <p className="text-slate-500 text-xs">Run with: <code className="bg-slate-100 px-1 rounded font-mono">bash step2_flash_usb.sh</code></p>
+        </Section>
+
+        {/* Step 3 */}
+        <Section title="🔧 Script 3 — MrChromebox firmware script (run ON the Chromebook)" icon={Terminal} color="border-orange-200">
+          <Info>This runs ON your ASUS CX1500CKA after ChromeOS is recovered. It's a reference/explainer — the real command to paste into your Chromebook terminal is inside.</Info>
+          <Warn>GALITH is EOL — the firmware script will only offer UEFI Full ROM (replaces ChromeOS). RW_LEGACY (dual boot) is blocked on EOL devices.</Warn>
+          <p className="text-slate-700 text-sm font-semibold mt-1">The one command you need (copy this to your Chromebook):</p>
+          <Code>cd; curl -LOf https://mrchromebox.tech/firmware-util.sh && sudo bash firmware-util.sh</Code>
+          <div className="bg-slate-50 rounded-lg p-3 text-xs text-slate-600 border border-slate-200 mt-2">
+            <p className="font-semibold mb-1">How to get a terminal on your Chromebook:</p>
+            <ol className="space-y-1 list-decimal list-inside">
+              <li>Boot to the ChromeOS login screen (don't log in)</li>
+              <li>Press <kbd className="bg-white border rounded px-1 font-mono">Ctrl+Alt+F2</kbd> — F2 is the right-arrow → key</li>
+              <li>Login: <code className="bg-white border rounded px-1 font-mono">chronos</code> (no password)</li>
+              <li>Paste the command above</li>
+            </ol>
+          </div>
+          <div className="pt-1">
+            <DownloadBtn label="Download step3_firmware_script.sh" filename="step3_firmware_script.sh" content={SCRIPT_STEP3_CHROMEOS} color="bg-orange-600 hover:bg-orange-700" />
+          </div>
+        </Section>
+
+        {/* Windows shortcut */}
+        <div className="bg-white rounded-xl border-2 border-slate-200 p-4">
+          <p className="font-semibold text-slate-800 text-sm flex items-center gap-2 mb-2">
+            🪟 Windows user? Skip Scripts 1 & 2 entirely.
+          </p>
+          <ol className="text-xs text-slate-600 space-y-1 list-decimal list-inside">
+            <li>Install <a href="https://chrome.google.com/webstore/detail/chromebook-recovery-utili/pocpnlppkickgojjlmhdmidojbmbodfm" target="_blank" className="text-blue-600 underline">Chromebook Recovery Utility <ExternalLink className="inline w-3 h-3" /></a> in Chrome</li>
+            <li>Search for <strong>ASUS Chromebook CX1500CKA</strong></li>
+            <li>Plug in USB → it downloads and flashes automatically</li>
+            <li>Then enter recovery mode on the broken laptop (ESC + Refresh↻ + Power)</li>
+          </ol>
+        </div>
+
+        {/* Recovery mode reminder */}
+        <div className="bg-slate-900 text-white rounded-xl p-4 text-xs">
+          <p className="font-bold text-slate-300 mb-2">⌨️ Key combos for your ASUS CX1500CKA</p>
+          <div className="space-y-1 text-slate-300">
+            <div className="flex gap-2"><span className="text-slate-500 w-36 flex-shrink-0">Recovery Mode:</span><span className="font-mono text-yellow-300">ESC + Refresh↻ + Power</span></div>
+            <div className="flex gap-2"><span className="text-slate-500 w-36 flex-shrink-0">Developer Mode:</span><span className="font-mono text-yellow-300">At recovery screen → Ctrl+D → Enter</span></div>
+            <div className="flex gap-2"><span className="text-slate-500 w-36 flex-shrink-0">Terminal (VT2):</span><span className="font-mono text-yellow-300">Ctrl+Alt+F2 → login: chronos</span></div>
+            <div className="flex gap-2"><span className="text-slate-500 w-36 flex-shrink-0">Boot ChromeOS:</span><span className="font-mono text-yellow-300">Ctrl+D at developer screen</span></div>
           </div>
         </div>
 
-        {/* Scenario picker */}
-        {!scenario && (
-          <div className="mb-6">
-            <h2 className="font-bold text-slate-800 mb-3">What's your situation right now?</h2>
-            <div className="grid gap-3">
-              {[
-                { id: "broken", label: "ChromeOS is broken / won't boot", sub: "Shows error, missing OS, damaged screen, or stuck", color: "border-red-300 bg-red-50 hover:bg-red-100" },
-                { id: "devmode", label: "I'm in Developer Mode and have a terminal", sub: "You see the white 'OS verification is OFF' screen on boot", color: "border-blue-300 bg-blue-50 hover:bg-blue-100" },
-                { id: "normal", label: "ChromeOS is working fine", sub: "I want to set up dual boot or understand my options", color: "border-green-300 bg-green-50 hover:bg-green-100" },
-              ].map(s => (
-                <button key={s.id} onClick={() => setScenario(s.id)}
-                  className={`rounded-xl border-2 p-4 text-left transition-colors ${s.color}`}>
-                  <p className="font-semibold text-slate-800">{s.label}</p>
-                  <p className="text-slate-500 text-xs mt-0.5">{s.sub}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {scenario && (
-          <button onClick={() => setScenario(null)} className="text-sm text-blue-600 hover:underline mb-4 flex items-center gap-1">
-            ← Change scenario
-          </button>
-        )}
-
-        {/* ───────── SCENARIO: BROKEN ───────── */}
-        {scenario === "broken" && (
-          <div>
-            <Warn>Your GALITH has reached End of Life (EOL) — Google no longer updates it. This doesn't stop recovery, it just means the firmware script can't install RW_LEGACY on EOL devices. Plain ChromeOS recovery still works fine.</Warn>
-
-            <Step number={1} title="What you need before starting" icon={CheckCircle} color="border-slate-200" defaultOpen={true}>
-              <ul className="space-y-1">
-                <Li>A second computer (Windows, Mac, or Linux) — any will work</Li>
-                <Li>A USB drive, 8GB or larger (all data on it will be erased)</Li>
-                <Li>Google Chrome browser installed on the second computer</Li>
-                <Li>An internet connection</Li>
-              </ul>
-              <Note>You do NOT need to run any scripts. You do NOT need a terminal. You do NOT need to open the laptop.</Note>
-            </Step>
-
-            <Step number={2} title="Create your ChromeOS Recovery USB" icon={Download} color="border-blue-200" defaultOpen={true}>
-              <p className="text-sm text-slate-600 mb-3">Do this on your working second computer. There are two methods — try Method A first:</p>
-
-              <div className="bg-slate-50 rounded-lg p-4 mb-3 border border-slate-200">
-                <p className="font-semibold text-slate-800 text-sm mb-2">✅ Method A — Chromebook Recovery Utility (easiest, Windows/Mac/ChromeOS)</p>
-                <ol className="space-y-1">
-                  <NumLi n={1}>Install the <a href={RECOVERY_UTIL_URL} target="_blank" className="text-blue-600 underline">Chromebook Recovery Utility <ExternalLink className="inline w-3 h-3" /></a> Chrome extension</NumLi>
-                  <NumLi n={2}>Open it, click the gear icon → "Use a recovery image file" — OR — search for <strong>ASUS Chromebook CX1500CKA</strong></NumLi>
-                  <NumLi n={3}>Plug in your USB drive</NumLi>
-                  <NumLi n={4}>Select your USB drive and click Continue → Create Now</NumLi>
-                  <NumLi n={5}>Wait for it to finish (5–15 min). Done!</NumLi>
-                </ol>
-              </div>
-
-              <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-                <p className="font-semibold text-slate-800 text-sm mb-2">🔧 Method B — Manual download + Rufus (Windows, if Method A fails)</p>
-                <ol className="space-y-1">
-                  <NumLi n={1}>
-                    Go to <a href={RECOVERY_CROS_TECH} target="_blank" className="text-blue-600 underline">cros.tech/device/galith <ExternalLink className="inline w-3 h-3" /></a> → click "Recovery Images" → download the latest stable .zip → extract the .bin file
-                  </NumLi>
-                  <NumLi n={2}>Download <a href="https://rufus.ie/en/" target="_blank" className="text-blue-600 underline">Rufus <ExternalLink className="inline w-3 h-3" /></a></NumLi>
-                  <NumLi n={3}>Open Rufus, plug in USB, click SELECT and choose your .bin file</NumLi>
-                  <NumLi n={4}><strong className="text-red-700">CRITICAL:</strong> When Rufus asks, choose <strong>"DD Image"</strong> mode — NOT ISO mode</NumLi>
-                  <NumLi n={5}>Click Start and wait</NumLi>
-                </ol>
-                <Warn>If you pick ISO mode in Rufus, the recovery will fail. Must be DD mode.</Warn>
-              </div>
-            </Step>
-
-            <Step number={3} title="Enter Recovery Mode on your ASUS" icon={RefreshCw} color="border-purple-200" defaultOpen={true}>
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
-                <p className="font-semibold text-yellow-800 text-sm">On your broken ASUS CX1500CKA:</p>
-              </div>
-              <ol className="space-y-2">
-                <NumLi n={1}>Make sure the laptop is completely <strong>powered off</strong></NumLi>
-                <NumLi n={2}>Press and hold <kbd className="bg-slate-200 px-2 py-0.5 rounded text-xs font-mono">ESC</kbd> + <kbd className="bg-slate-200 px-2 py-0.5 rounded text-xs font-mono">Refresh ↻</kbd> (the circular arrow key, top row), then while holding both, press <kbd className="bg-slate-200 px-2 py-0.5 rounded text-xs font-mono">Power</kbd></NumLi>
-                <NumLi n={3}>Release all keys when the screen lights up</NumLi>
-                <NumLi n={4}>You should see a screen saying <strong>"Chrome OS is missing or damaged"</strong> or similar recovery screen</NumLi>
-              </ol>
-              <Note>The Refresh key is the circular arrow ↻ in the top row — usually the 4th key from the left on a Chromebook keyboard. It is NOT F3 like on some keyboards.</Note>
-            </Step>
-
-            <Step number={4} title="Run the recovery" icon={Usb} color="border-green-200" defaultOpen={true}>
-              <ol className="space-y-2">
-                <NumLi n={1}>When you see the recovery screen on the broken laptop, plug in your recovery USB</NumLi>
-                <NumLi n={2}>The recovery starts automatically — you'll see a progress bar</NumLi>
-                <NumLi n={3}>Wait 5–20 minutes. Do not unplug anything.</NumLi>
-                <NumLi n={4}>The device will reboot automatically when done</NumLi>
-                <NumLi n={5}>Remove the USB when the laptop restarts</NumLi>
-                <NumLi n={6}>Set up ChromeOS as if it were brand new</NumLi>
-              </ol>
-              <Note>If recovery fails, try a different USB drive. Some USB drives have compatibility issues with ChromeOS recovery.</Note>
-            </Step>
-
-            <Step number={5} title="OPTIONAL: After recovery — install RW_LEGACY for dual boot" icon={Terminal} color="border-orange-200">
-              <Warn>Skip this step if you just want ChromeOS working again. Only do this if you want to also run Linux.</Warn>
-              <p className="text-sm text-slate-600 mb-3">Once ChromeOS is working again, to run the MrChromebox firmware script:</p>
-              <ol className="space-y-2">
-                <NumLi n={1}>At the ChromeOS login screen, press <kbd className="bg-slate-200 px-2 py-0.5 rounded text-xs font-mono">Ctrl+Alt+F2</kbd> (F2 = right arrow key →)</NumLi>
-                <NumLi n={2}>Log in as: <code className="bg-slate-100 px-2 py-0.5 rounded text-xs font-mono">chronos</code> (no password)</NumLi>
-                <NumLi n={3}>Run this command:</NumLi>
-              </ol>
-              <CodeBlock code="cd; curl -LOf https://mrchromebox.tech/firmware-util.sh && sudo bash firmware-util.sh" />
-              <p className="text-sm text-slate-600 mt-3">Select option <strong>1</strong> — "Install/Update RW_LEGACY Firmware". This lets you dual-boot ChromeOS + Linux without opening the laptop.</p>
-              <Warn>Because GALITH is EOL, the script will NOT offer RW_LEGACY — only UEFI Full ROM (which removes ChromeOS). If you want to keep ChromeOS, just stop after Step 4 — recovery is all you need.</Warn>
-            </Step>
-          </div>
-        )}
-
-        {/* ───────── SCENARIO: DEV MODE ───────── */}
-        {scenario === "devmode" && (
-          <div>
-            <Note>You're in a great position — you have terminal access. The firmware script will run directly on your device.</Note>
-
-            <Step number={1} title="Open a terminal (VT2 shell)" icon={Terminal} color="border-blue-200" defaultOpen={true}>
-              <p className="text-sm text-slate-600 mb-2">At the login screen (don't log in):</p>
-              <ol className="space-y-2">
-                <NumLi n={1}>Press <kbd className="bg-slate-200 px-2 py-0.5 rounded text-xs font-mono">Ctrl+Alt+F2</kbd> — F2 is the <strong>right arrow →</strong> key on your keyboard</NumLi>
-                <NumLi n={2}>You'll see a black text screen asking for login</NumLi>
-                <NumLi n={3}>Type <code className="bg-slate-100 px-1 rounded font-mono">chronos</code> and press Enter (no password needed)</NumLi>
-              </ol>
-            </Step>
-
-            <Step number={2} title="Run the MrChromebox Firmware Script" icon={Terminal} color="border-green-200" defaultOpen={true}>
-              <p className="text-sm text-slate-600 mb-2">Copy and paste this exact command:</p>
-              <CodeBlock code="cd; curl -LOf https://mrchromebox.tech/firmware-util.sh && sudo bash firmware-util.sh" />
-              <p className="text-sm text-slate-600 mt-3">The script will detect your GALITH device automatically and show you a menu.</p>
-              <Warn>GALITH is EOL. The script will likely only show UEFI Full ROM (which removes ChromeOS). RW_LEGACY is blocked on EOL devices. If you want to keep ChromeOS, use the ChromeOS Recovery USB method instead (select "ChromeOS is broken" above).</Warn>
-            </Step>
-
-            <Step number={3} title="What the menu options mean for GALITH" icon={CheckCircle} color="border-purple-200" defaultOpen={true}>
-              <div className="space-y-3">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                  <p className="font-semibold text-green-800 text-sm">Option 1 — RW_LEGACY (if available)</p>
-                  <p className="text-green-700 text-xs mt-1">Keeps ChromeOS, adds ability to boot Linux. No hardware opening needed. BUT: likely greyed out/disabled for GALITH (EOL).</p>
-                </div>
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                  <p className="font-semibold text-orange-800 text-sm">Option 2 — UEFI Full ROM</p>
-                  <p className="text-orange-700 text-xs mt-1">Replaces firmware entirely. Removes ChromeOS permanently. Requires disabling hardware write-protect (opening laptop). Only do this if you want Linux/Windows instead of ChromeOS.</p>
-                </div>
-              </div>
-            </Step>
-          </div>
-        )}
-
-        {/* ───────── SCENARIO: NORMAL ───────── */}
-        {scenario === "normal" && (
-          <div>
-            <Note>Good news — your device boots! You're in the best position. Here's what you can do with GALITH.</Note>
-
-            <Step number={1} title="Your options on a working GALITH" icon={CheckCircle} color="border-green-200" defaultOpen={true}>
-              <div className="space-y-3">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                  <p className="font-semibold text-green-800 text-sm">✅ Keep ChromeOS (just use it)</p>
-                  <p className="text-green-700 text-xs mt-1">GALITH is EOL but still fully functional. You just won't get future ChromeOS updates. No changes needed.</p>
-                </div>
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <p className="font-semibold text-blue-800 text-sm">⚠️ RW_LEGACY for dual boot</p>
-                  <p className="text-blue-700 text-xs mt-1">Normally this would let you dual-boot Linux. However, GALITH is EOL and MrChromebox blocks RW_LEGACY on EOL devices. You'd need UEFI Full ROM instead.</p>
-                </div>
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                  <p className="font-semibold text-orange-800 text-sm">🔧 UEFI Full ROM (replace ChromeOS)</p>
-                  <p className="text-orange-700 text-xs mt-1">Completely replaces ChromeOS with Linux or Windows. Requires opening the laptop to remove a write-protect screw/jumper, then running the firmware script.</p>
-                </div>
-              </div>
-            </Step>
-
-            <Step number={2} title="To run the firmware script on a working device" icon={Terminal} color="border-slate-200">
-              <ol className="space-y-2">
-                <NumLi n={1}>First enable Developer Mode: power off → hold <kbd className="bg-slate-200 px-1 py-0.5 rounded text-xs font-mono">ESC+Refresh↻+Power</kbd> → at recovery screen press <kbd className="bg-slate-200 px-1 py-0.5 rounded text-xs font-mono">Ctrl+D</kbd> → Enter</NumLi>
-                <NumLi n={2}><strong>Warning: Developer Mode wipes all your data.</strong> Back up first!</NumLi>
-                <NumLi n={3}>Once in Developer Mode, at the login screen press <kbd className="bg-slate-200 px-1 py-0.5 rounded text-xs font-mono">Ctrl+Alt+→</kbd></NumLi>
-                <NumLi n={4}>Login as <code className="bg-slate-100 px-1 rounded font-mono">chronos</code></NumLi>
-                <NumLi n={5}>Run the script:</NumLi>
-              </ol>
-              <CodeBlock code="cd; curl -LOf https://mrchromebox.tech/firmware-util.sh && sudo bash firmware-util.sh" />
-            </Step>
-          </div>
-        )}
-
-        {/* Always-visible quick reference */}
-        <div className="mt-6 bg-slate-900 text-white rounded-xl p-4">
-          <p className="font-bold text-sm mb-3 text-slate-300">📋 Quick Reference — GALITH / ASUS CX1500CKA</p>
-          <div className="space-y-2 text-xs text-slate-300">
-            <div className="flex justify-between gap-2"><span>Board name:</span><span className="font-mono text-green-400">GALITH</span></div>
-            <div className="flex justify-between gap-2"><span>Platform:</span><span className="font-mono text-green-400">Intel JasperLake</span></div>
-            <div className="flex justify-between gap-2"><span>Status:</span><span className="font-mono text-amber-400">EOL (still recoverable)</span></div>
-            <div className="flex justify-between gap-2"><span>Recovery key combo:</span><span className="font-mono text-green-400">ESC + Refresh + Power</span></div>
-            <div className="flex justify-between gap-2"><span>Terminal shortcut:</span><span className="font-mono text-green-400">Ctrl+Alt+F2 → chronos</span></div>
-            <div className="border-t border-slate-700 pt-2 mt-2">
-              <p className="text-slate-400 mb-1">Recovery image source:</p>
-              <a href={RECOVERY_CROS_TECH} target="_blank" className="text-blue-400 underline break-all">cros.tech/device/galith</a>
-            </div>
-            <div className="border-t border-slate-700 pt-2 mt-2">
-              <p className="text-slate-400 mb-1">Firmware script command:</p>
-              <div className="flex items-center gap-1">
-                <code className="text-green-300 text-xs break-all">cd; curl -LOf https://mrchromebox.tech/firmware-util.sh && sudo bash firmware-util.sh</code>
-                <CopyButton text="cd; curl -LOf https://mrchromebox.tech/firmware-util.sh && sudo bash firmware-util.sh" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <p className="text-center text-xs text-slate-400 mt-6">Need more help? Visit <a href="https://forum.chrultrabook.com" target="_blank" className="text-blue-500 underline">forum.chrultrabook.com</a></p>
+        <p className="text-center text-xs text-slate-400 pb-4">
+          All scripts are pre-configured for GALITH. Sources: <a href="https://docs.mrchromebox.tech" target="_blank" className="text-blue-500 underline">MrChromebox</a> · <a href="https://cros.tech/device/galith" target="_blank" className="text-blue-500 underline">cros.tech</a>
+        </p>
       </div>
     </div>
   );
